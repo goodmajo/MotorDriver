@@ -33,14 +33,15 @@ class MotorDriver
     /* Arduino stuff. */
     const unsigned int m_inputPin;
 
-    /* The scale factor will be applied to the max and min values. This is useful if you want to,
-       say, give your motors a speed limit but still want to use the full physical range of your
-       transmitter's sticks. */
-    float m_scaleFactor = 1.0;
-
     /* If this is true, we're taking in input from an analog source and we need to initialize
        m_inputPin. */
     const bool m_analogInput;
+
+    /* The scale factor will be applied to the max and min values. This is useful if you want to,
+       say, give your motors a speed limit but still want to use the full physical range of your
+       transmitter's sticks. */
+    const float m_scaleFactor = 1.0;
+    const RangeLimits m_controlRangeLimits;
 
     /* These values should be determined experimentally if you are using a hobby transmitter or any
        other type of controller that you bought off the shelf. */
@@ -68,20 +69,26 @@ class MotorDriver
                 const int deadZoneMax, const int deadZoneMin) :
         m_inputPin(999),
         m_analogInput(false),
+        m_controlRangeLimits(round(-255 * m_scaleFactor), round(255 * m_scaleFactor)),
         m_inputLimits(inputFloor, inputCeiling),
         m_deadZoneLimits(deadZoneMin, deadZoneMax)
-    {}
+    {
+        const int lowerEndOfRange = round(-255 * m_scaleFactor);
+        const int upperEndOfRange = round( 255 * m_scaleFactor);
+    }
 
     MotorDriver(const unsigned int inputPin,
                 const int inputFloor, const int inputCeiling,
                 const int deadZoneMax, const int deadZoneMin) :
         m_inputPin(inputPin),
         m_analogInput(true),
+        m_controlRangeLimits(round(-255 * m_scaleFactor), round(255 * m_scaleFactor)),
         m_inputLimits(inputFloor, inputCeiling),
         m_deadZoneLimits(deadZoneMin, deadZoneMax)
     {
         /* Set input pin(s) */
         pinMode(inputPin, INPUT);
+
     }
 
 
@@ -145,13 +152,10 @@ class HBridge : public MotorDriver
   protected:
     void moveMotor(const int inputVal) const
     {
-        const int lowerEndOfRange = round(-255 * m_scaleFactor);
-        const int upperEndOfRange = round( 255 * m_scaleFactor);
-
         const int controlVal = constrain(map(inputVal, m_inputLimits.minimum, m_inputLimits.maximum,
                                              -255, 255),
-                                         lowerEndOfRange,
-                                         upperEndOfRange);
+                                         m_controlRangeLimits.minimum,
+                                         m_controlRangeLimits.maximum);
 
         if(controlVal < m_deadZoneLimits.minimum)
         {
@@ -211,13 +215,10 @@ class HalfBridge : public MotorDriver
   protected:
     void moveMotor(const int inputVal) const
     {
-        const int lowerEndOfRange = round(-255 * m_scaleFactor);
-        const int upperEndOfRange = round( 255 * m_scaleFactor);
-
         const int controlVal = constrain(map(inputVal, m_inputLimits.minimum, m_inputLimits.maximum,
                                              -255, 255),
-                                         lowerEndOfRange,
-                                         upperEndOfRange);
+                                         m_controlRangeLimits.minimum,
+                                         m_controlRangeLimits.maximum);
 
         if(controlVal < m_deadZoneLimits.minimum)
         {
