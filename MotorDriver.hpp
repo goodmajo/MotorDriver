@@ -20,8 +20,8 @@ class MotorDriver
   public:
     struct RangeLimits
     {
-        const int minimum;
-        const int maximum;
+        int minimum;
+        int maximum;
         RangeLimits(const int _min, const int _max) :
             minimum(_min),
             maximum(_max)
@@ -40,8 +40,8 @@ class MotorDriver
     /* The scale factor will be applied to the max and min values. This is useful if you want to,
        say, give your motors a speed limit but still want to use the full physical range of your
        transmitter's sticks. */
-    const float m_scaleFactor = 1.0;
-    const RangeLimits m_controlRangeLimits;
+    float m_scaleFactor = 1.0;
+    RangeLimits m_controlRangeLimits;
 
     /* These values should be determined experimentally if you are using a hobby transmitter or any
        other type of controller that you bought off the shelf. */
@@ -59,6 +59,8 @@ class MotorDriver
             m_scaleFactor = 1.0;
         else
             m_scaleFactor = scaleFactor;
+        m_controlRangeLimits = RangeLimits(round(-255 * m_scaleFactor),
+                                           round(255 * m_scaleFactor));
     }
 
     virtual void moveMotor(const int inputVal) const = 0;
@@ -66,7 +68,7 @@ class MotorDriver
   public:
 
     MotorDriver(const int inputFloor, const int inputCeiling,
-                const int deadZoneMax, const int deadZoneMin) :
+                const int deadZoneMin, const int deadZoneMax) :
         m_inputPin(999),
         m_analogInput(false),
         m_controlRangeLimits(round(-255 * m_scaleFactor), round(255 * m_scaleFactor)),
@@ -79,7 +81,7 @@ class MotorDriver
 
     MotorDriver(const unsigned int inputPin,
                 const int inputFloor, const int inputCeiling,
-                const int deadZoneMax, const int deadZoneMin) :
+                const int deadZoneMin, const int deadZoneMax) :
         m_inputPin(inputPin),
         m_analogInput(true),
         m_controlRangeLimits(round(-255 * m_scaleFactor), round(255 * m_scaleFactor)),
@@ -123,8 +125,8 @@ class HBridge : public MotorDriver
     HBridge(const unsigned int posPin, const unsigned int negPin,
             const unsigned int pwmPin,
             const int inputFloor=-255, const int inputCeiling=255,
-            const int deadZoneMax=0, const int deadZoneMin=0) :
-        MotorDriver(inputFloor, inputCeiling, deadZoneMax, deadZoneMin),
+            const int deadZoneMin=0, const int deadZoneMax=0) :
+        MotorDriver(inputFloor, inputCeiling, deadZoneMin, deadZoneMax),
         m_posPin(posPin),
         m_negPin(negPin),
         m_pwmPin(pwmPin)
@@ -138,7 +140,7 @@ class HBridge : public MotorDriver
     HBridge(const unsigned int posPin, const unsigned int negPin,
             const unsigned int pwmPin, const unsigned int inputPin,
             const int inputFloor=-255, const int inputCeiling=255,
-            const int deadZoneMax=10, const int deadZoneMin=-10) :
+            const int deadZoneMin=-10, const int deadZoneMax=10) :
         MotorDriver(inputPin, inputFloor, inputCeiling, deadZoneMax, deadZoneMin),
         m_posPin(posPin),
         m_negPin(negPin),
@@ -249,8 +251,8 @@ class HalfBridge : public MotorDriver
                const unsigned int pwmPinA, const unsigned int pwmPinB,
                const unsigned int enablePinA, const unsigned int enablePinB,
                const int inputFloor=-255, const int inputCeiling=255,
-               const int deadZoneMax=0, const int deadZoneMin=0) :
-        MotorDriver(inputFloor, inputCeiling, deadZoneMax, deadZoneMin),
+               const int deadZoneMin=0, const int deadZoneMax=0) :
+        MotorDriver(inputFloor, inputCeiling, deadZoneMin, deadZoneMax),
         m_enablePinA(enablePinA),
         m_enablePinB(enablePinB),
         m_pwmPinA(pwmPinA),
@@ -268,8 +270,8 @@ class HalfBridge : public MotorDriver
                const unsigned int enablePinA, const unsigned int enablePinB,
                const unsigned int inputPin,
                const int inputFloor=-255, const int inputCeiling=255,
-               const int deadZoneMax=10, const int deadZoneMin=-10) :
-        MotorDriver(inputPin, inputFloor, inputCeiling, deadZoneMax, deadZoneMin),
+               const int deadZoneMin=-10, const int deadZoneMax=10) :
+        MotorDriver(inputPin, inputFloor, inputCeiling, deadZoneMin, deadZoneMax),
         m_enablePinA(enablePinA),
         m_enablePinB(enablePinB),
         m_pwmPinA(pwmPinA),
