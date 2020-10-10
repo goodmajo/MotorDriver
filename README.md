@@ -8,4 +8,5 @@ I hope people find this useful!
 ## TODO
 *   Test the Half-H class. I am waiting on the appropriate hardware to arrive in the mail. Once it gets here, I'll confirm that it works.
 *   Write a function/program to help users determine transmitter/controller stick limits.
-*   Make `m_scaleFactor` value set in constructor.
+*   Make `m_scaleFactor` value set in constructor
+*   Write a tutorial?
