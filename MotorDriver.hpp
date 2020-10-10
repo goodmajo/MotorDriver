@@ -17,15 +17,25 @@
 
 class MotorDriver
 {
-protected:
-    // static constexpr unsigned int m_timeout = 100000;
+  public:
+    struct RangeLimits
+    {
+        const int min;
+        const int max;
+        RangeLimits(const int _min, const int _max) :
+            min(_min),
+            max(_max)
+        {}
+    };
+
+  protected:
 
     /* Arduino stuff. */
     const unsigned int m_inputPin;
 
-    /* The scale factor will be applied to the max and min values. This is useful if you want to, say,
-       give your motors a speed limit but still wat to use the full physucal range of your transmitter's
-       sticks. */
+    /* The scale factor will be applied to the max and min values. This is useful if you want to,
+       say, give your motors a speed limit but still want to use the full physical range of your
+       transmitter's sticks. */
     float m_scaleFactor = 1.0;
 
     /* If this is true, we're taking in input from an analog source and we need to initialize
@@ -34,12 +44,11 @@ protected:
 
     /* These values should be determined experimentally if you are using a hobby transmitter or any
        other type of controller that you bought off the shelf. */
-    const int m_inputFloor;
-    const int m_inputCeiling;
+    const RangeLimits m_inputLimits;
+
     /* You may want to set a range where the motor doesn't move to account for oversensitivity in
        transmitters. */
-    const int m_deadZoneMax;
-    const int m_deadZoneMin;
+    const RangeLimits m_deadZoneLimits;
 
     void setScaleFactor(const float& scaleFactor)
     {
@@ -53,28 +62,23 @@ protected:
 
     virtual void moveMotor(const int inputVal) const = 0;
 
-public:
+  public:
 
     MotorDriver(const int inputFloor, const int inputCeiling,
                 const int deadZoneMax, const int deadZoneMin) :
         m_inputPin(999),
         m_analogInput(false),
-        m_inputFloor(inputFloor),
-        m_inputCeiling(inputCeiling),
-        m_deadZoneMax(deadZoneMax),
-        m_deadZoneMin(deadZoneMin)
-    {
-    }
+        m_inputLimits(inputFloor, inputCeiling),
+        m_deadZoneLimits(deadZoneMin, deadZoneMax)
+    {}
 
     MotorDriver(const unsigned int inputPin,
                 const int inputFloor, const int inputCeiling,
                 const int deadZoneMax, const int deadZoneMin) :
         m_inputPin(inputPin),
         m_analogInput(true),
-        m_inputFloor(inputFloor),
-        m_inputCeiling(inputCeiling),
-        m_deadZoneMax(deadZoneMax),
-        m_deadZoneMin(deadZoneMin)
+        m_inputLimits(inputFloor, inputCeiling),
+        m_deadZoneLimits(deadZoneMin, deadZoneMax)
     {
         /* Set input pin(s) */
         pinMode(inputPin, INPUT);
@@ -87,7 +91,7 @@ public:
             return;
 
         /* Read the input pin */
-        const int inputVal = pulseIn(m_inputPin, HIGH, 100000);
+        const int inputVal = pulseIn(m_inputPin, HIGH);
         moveMotor(inputVal);
 
     }
@@ -102,11 +106,13 @@ public:
 
 class HBridge : public MotorDriver
 {
+    /* Arduino stuff */
     const unsigned int m_posPin;
     const unsigned int m_negPin;
     const unsigned int m_pwmPin;
 
-public:
+  public:
+    /* Use this constructor if you ARE NOT going to use a transmitter to control your motor. */
     HBridge(const unsigned int posPin, const unsigned int negPin,
             const unsigned int pwmPin,
             const int inputFloor=-255, const int inputCeiling=255,
@@ -121,6 +127,7 @@ public:
         pinMode(m_pwmPin, OUTPUT);
     }
 
+    /* Use this constructor if you ARE going to use a transmitter to control your motor. */
     HBridge(const unsigned int posPin, const unsigned int negPin,
             const unsigned int pwmPin, const unsigned int inputPin,
             const int inputFloor=-255, const int inputCeiling=255,
@@ -135,23 +142,24 @@ public:
         pinMode(m_pwmPin, OUTPUT);
     }
 
-protected:
+  protected:
     void moveMotor(const int inputVal) const
     {
         const int lowerEndOfRange = round(-255 * m_scaleFactor);
         const int upperEndOfRange = round( 255 * m_scaleFactor);
 
-        const int controlVal = constrain(map(inputVal, m_inputFloor, m_inputCeiling, -255, 255),
+        const int controlVal = constrain(map(inputVal, m_inputLimits.min, m_inputLimits.max,
+                                             -255, 255),
                                          lowerEndOfRange,
                                          upperEndOfRange);
 
-        if(controlVal < m_deadZoneMin)
+        if(controlVal < m_deadZoneLimits.min)
         {
             digitalWrite(m_posPin, LOW);
             digitalWrite(m_negPin, HIGH);
             analogWrite(m_pwmPin, controlVal);
         }
-        else if(controlVal > m_deadZoneMax)
+        else if(controlVal > m_deadZoneLimits.max)
         {
             digitalWrite(m_posPin, HIGH);
             digitalWrite(m_negPin, LOW);
@@ -172,7 +180,7 @@ class HBridgePair
     HBridge& m_a;
     HBridge& m_b;
 
-public:
+  public:
     HBridgePair(HBridge& a, HBridge& b) :
         m_a(a),
         m_b(b)
@@ -194,19 +202,20 @@ public:
 
 class HalfBridge : public MotorDriver
 {
-private:
+    /* Arduino stuff */
     const unsigned int m_enablePinA;
     const unsigned int m_enablePinB;
     const unsigned int m_pwmPinA;
     const unsigned int m_pwmPinB;
 
-protected:
+  protected:
     void moveMotor(const int inputVal) const
     {
         const int lowerEndOfRange = round(-255 * m_scaleFactor);
         const int upperEndOfRange = round( 255 * m_scaleFactor);
 
-        const int controlVal = constrain(map(inputVal, m_inputFloor, m_inputCeiling, -255, 255),
+        const int controlVal = constrain(map(inputVal, m_inputLimits.min, m_inputLimits.max,
+                                             -255, 255),
                                          lowerEndOfRange,
                                          upperEndOfRange);
 
@@ -233,12 +242,13 @@ protected:
         }
     }
 
-public:
+  public:
+    /* Use this constructor if you ARE NOT going to use a transmitter to control your motor. */
     HalfBridge(const unsigned int posPin, const unsigned int negPin,
-         const unsigned int pwmPinA, const unsigned int pwmPinB,
-         const unsigned int enablePinA, const unsigned int enablePinB,
-         const int inputFloor=-255, const int inputCeiling=255,
-         const int deadZoneMax=0, const int deadZoneMin=0) :
+               const unsigned int pwmPinA, const unsigned int pwmPinB,
+               const unsigned int enablePinA, const unsigned int enablePinB,
+               const int inputFloor=-255, const int inputCeiling=255,
+               const int deadZoneMax=0, const int deadZoneMin=0) :
         MotorDriver(inputFloor, inputCeiling, deadZoneMax, deadZoneMin),
         m_enablePinA(enablePinA),
         m_enablePinB(enablePinB),
@@ -251,12 +261,13 @@ public:
         pinMode(m_pwmPinB, OUTPUT);
     }
 
+    /* Use this constructor if you ARE going to use a transmitter to control your motor. */
     HalfBridge(const unsigned int posPin, const unsigned int negPin,
-         const unsigned int pwmPinA, const unsigned int pwmPinB,
-         const unsigned int enablePinA, const unsigned int enablePinB,
-         const unsigned int inputPin,
-         const int inputFloor=-255, const int inputCeiling=255,
-         const int deadZoneMax=10, const int deadZoneMin=-10) :
+               const unsigned int pwmPinA, const unsigned int pwmPinB,
+               const unsigned int enablePinA, const unsigned int enablePinB,
+               const unsigned int inputPin,
+               const int inputFloor=-255, const int inputCeiling=255,
+               const int deadZoneMax=10, const int deadZoneMin=-10) :
         MotorDriver(inputPin, inputFloor, inputCeiling, deadZoneMax, deadZoneMin),
         m_enablePinA(enablePinA),
         m_enablePinB(enablePinB),
