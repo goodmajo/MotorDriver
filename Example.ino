@@ -4,11 +4,13 @@ const unsigned int pwmPin = 3;
 const unsigned int posPin = 5;
 const unsigned int negPin = 4;
 
+/* Declare MotorDriver child object globally. */
 HBridge driver(posPin, negPin, pwmPin);
   
 void setup()
 {
-  /* Nothing to do */
+  /* Call init method here. */
+  driver.init();
 }
 
 void loop() {

@@ -87,10 +87,14 @@ class MotorDriver
         m_controlRangeLimits(round(-255 * m_scaleFactor), round(255 * m_scaleFactor)),
         m_inputLimits(inputFloor, inputCeiling),
         m_deadZoneLimits(deadZoneMin, deadZoneMax)
+    {}
+
+    virtual ~MotorDriver() = default;
+
+    void init()
     {
         /* Set input pin(s) */
-        pinMode(inputPin, INPUT);
-
+        pinMode(m_inputPin, INPUT);
     }
 
 
@@ -131,9 +135,9 @@ class HBridge : public MotorDriver
         m_negPin(negPin),
         m_pwmPin(pwmPin)
     {
-        pinMode(m_posPin, OUTPUT);
-        pinMode(m_negPin, OUTPUT);
-        pinMode(m_pwmPin, OUTPUT);
+        // pinMode(m_posPin, OUTPUT);
+        // pinMode(m_negPin, OUTPUT);
+        // pinMode(m_pwmPin, OUTPUT);
     }
 
     /* Use this constructor if you ARE going to use a transmitter to control your motor. */
@@ -146,6 +150,16 @@ class HBridge : public MotorDriver
         m_negPin(negPin),
         m_pwmPin(pwmPin)
     {
+        // pinMode(m_posPin, OUTPUT);
+        // pinMode(m_negPin, OUTPUT);
+        // pinMode(m_pwmPin, OUTPUT);
+    }
+
+    virtual ~HBridge() = default;
+
+    void init()
+    {
+        MotorDriver::init();
         pinMode(m_posPin, OUTPUT);
         pinMode(m_negPin, OUTPUT);
         pinMode(m_pwmPin, OUTPUT);
@@ -257,12 +271,7 @@ class HalfBridge : public MotorDriver
         m_enablePinB(enablePinB),
         m_pwmPinA(pwmPinA),
         m_pwmPinB(pwmPinB)
-    {
-        pinMode(m_enablePinA, OUTPUT);
-        pinMode(m_enablePinB, OUTPUT);
-        pinMode(m_pwmPinA, OUTPUT);
-        pinMode(m_pwmPinB, OUTPUT);
-    }
+    {}
 
     /* Use this constructor if you ARE going to use a transmitter to control your motor. */
     HalfBridge(const unsigned int posPin, const unsigned int negPin,
@@ -276,7 +285,13 @@ class HalfBridge : public MotorDriver
         m_enablePinB(enablePinB),
         m_pwmPinA(pwmPinA),
         m_pwmPinB(pwmPinB)
+    {}
+
+    virtual ~HalfBridge() = default;
+
+    void init()
     {
+        MotorDriver::init();
         pinMode(m_enablePinA, OUTPUT);
         pinMode(m_enablePinB, OUTPUT);
         pinMode(m_pwmPinA, OUTPUT);
