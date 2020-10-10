@@ -20,11 +20,11 @@ class MotorDriver
   public:
     struct RangeLimits
     {
-        const int min;
-        const int max;
+        const int minimum;
+        const int maximum;
         RangeLimits(const int _min, const int _max) :
-            min(_min),
-            max(_max)
+            minimum(_min),
+            maximum(_max)
         {}
     };
 
@@ -148,18 +148,18 @@ class HBridge : public MotorDriver
         const int lowerEndOfRange = round(-255 * m_scaleFactor);
         const int upperEndOfRange = round( 255 * m_scaleFactor);
 
-        const int controlVal = constrain(map(inputVal, m_inputLimits.min, m_inputLimits.max,
+        const int controlVal = constrain(map(inputVal, m_inputLimits.minimum, m_inputLimits.maximum,
                                              -255, 255),
                                          lowerEndOfRange,
                                          upperEndOfRange);
 
-        if(controlVal < m_deadZoneLimits.min)
+        if(controlVal < m_deadZoneLimits.minimum)
         {
             digitalWrite(m_posPin, LOW);
             digitalWrite(m_negPin, HIGH);
             analogWrite(m_pwmPin, controlVal);
         }
-        else if(controlVal > m_deadZoneLimits.max)
+        else if(controlVal > m_deadZoneLimits.maximum)
         {
             digitalWrite(m_posPin, HIGH);
             digitalWrite(m_negPin, LOW);
@@ -214,19 +214,19 @@ class HalfBridge : public MotorDriver
         const int lowerEndOfRange = round(-255 * m_scaleFactor);
         const int upperEndOfRange = round( 255 * m_scaleFactor);
 
-        const int controlVal = constrain(map(inputVal, m_inputLimits.min, m_inputLimits.max,
+        const int controlVal = constrain(map(inputVal, m_inputLimits.minimum, m_inputLimits.maximum,
                                              -255, 255),
                                          lowerEndOfRange,
                                          upperEndOfRange);
 
-        if(controlVal < m_deadZoneMin)
+        if(controlVal < m_deadZoneLimits.minimum)
         {
             digitalWrite(m_enablePinA, HIGH);
             digitalWrite(m_enablePinB, HIGH);
             analogWrite(m_pwmPinA, 0) ;
             analogWrite(m_pwmPinB, abs(controlVal)) ;
         }
-        else if(controlVal > m_deadZoneMax)
+        else if(controlVal > m_deadZoneLimits.maximum)
         {
             digitalWrite(m_enablePinA, HIGH);
             digitalWrite(m_enablePinB, HIGH);
