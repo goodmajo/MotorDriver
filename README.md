@@ -7,8 +7,9 @@ I hope people find this useful!
 
 ## TODO
 *   Test the Half-H class. I am waiting on the appropriate hardware to arrive in the mail. Once it gets here, I'll confirm that it works.
+* Test `TransmitterPot` class.
 *   Write a function/program to help users determine transmitter/controller stick limits.
 *   `m_scaleFactor` stuff
     *   Set value in constructor?
-    *   This could also be adusted via a hardware switch or pot.
+    *   This could also be adusted via a hardware switch or pot (`TransmitterPot` object would handle this).
 *   Write a tutorial?
