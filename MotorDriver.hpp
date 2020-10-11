@@ -15,19 +15,19 @@
 #include <Arduino.h>
 
 
+struct RangeLimits
+{
+    int minimum;
+    int maximum;
+    RangeLimits(const int _min, const int _max) :
+        minimum(_min),
+        maximum(_max)
+    {}
+};
+
+
 class MotorDriver
 {
-  public:
-    struct RangeLimits
-    {
-        int minimum;
-        int maximum;
-        RangeLimits(const int _min, const int _max) :
-            minimum(_min),
-            maximum(_max)
-        {}
-    };
-
   protected:
 
     /* Arduino stuff. */
@@ -50,18 +50,6 @@ class MotorDriver
     /* You may want to set a range where the motor doesn't move to account for oversensitivity in
        transmitters. */
     const RangeLimits m_deadZoneLimits;
-
-    void setScaleFactor(const float& scaleFactor)
-    {
-        if(scaleFactor < 0.0)
-            m_scaleFactor = 0.0;
-        else if(scaleFactor > 1.0)
-            m_scaleFactor = 1.0;
-        else
-            m_scaleFactor = scaleFactor;
-        m_controlRangeLimits = RangeLimits(round(-255 * m_scaleFactor),
-                                           round(255 * m_scaleFactor));
-    }
 
     virtual void moveMotor(const int inputVal) const = 0;
 
@@ -113,6 +101,19 @@ class MotorDriver
     void operator()(const int inputVal) const
     {
         moveMotor(inputVal);
+    }
+
+
+    void setScaleFactor(const float& scaleFactor)
+    {
+        if(scaleFactor < 0.0)
+            m_scaleFactor = 0.0;
+        else if(scaleFactor > 1.0)
+            m_scaleFactor = 1.0;
+        else
+            m_scaleFactor = scaleFactor;
+        m_controlRangeLimits = RangeLimits(round(-255 * m_scaleFactor),
+                                           round(255 * m_scaleFactor));
     }
 };
 
@@ -296,6 +297,36 @@ class HalfBridge : public MotorDriver
         pinMode(m_enablePinB, OUTPUT);
         pinMode(m_pwmPinA, OUTPUT);
         pinMode(m_pwmPinB, OUTPUT);
+    }
+};
+
+
+class TransmitterPot
+{
+    const RangeLimits m_potLimits;
+    const unsigned int m_inputPin;
+    MotorDriver& m_motorDriver;
+
+  public:
+    TransmitterPot(const unsigned int inputPin,
+                   MotorDriver& motorDriver,
+                   const int minValue=0, const int maxValue=255) :
+        m_potLimits(minValue, maxValue),
+        m_inputPin(inputPin),
+        m_motorDriver(motorDriver)
+    {}
+
+    void init()
+    {
+         /* Set input pin(s) */
+        pinMode(m_inputPin, INPUT);
+    }
+
+    void operator()()
+    {
+        const int inputVal      = pulseIn(m_inputPin, HIGH);
+        const float scaleFactor = static_cast<float>(inputVal)/static_cast<float>(m_potLimits.maximum);
+        m_motorDriver.setScaleFactor(scaleFactor);
     }
 };
 
